@@ -1,0 +1,70 @@
+services:
+  database:
+    build:
+      context: .
+      dockerfile: app/database/Dockerfile
+    container_name: my-postgres
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "${DB_PORT:-5431}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    container_name: my-dashboard
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      HOSTNAME: database
+      DB_PORT: 5432
+    ports:
+      - "5000:5000"
+    depends_on:
+      database:
+        condition: service_healthy
+
+  analytics:
+    build:
+      context: .
+      dockerfile: app/analytics/Dockerfile
+    container_name: portmonitor-statistics
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      HOSTNAME: database
+      DB_PORT: 5432
+    depends_on:
+      database:
+        condition: service_healthy
+
+  data_collector:
+    build:
+      context: .
+      dockerfile: app/data/Dockerfile
+    container_name: portmonitor-collector
+    restart: unless-stopped
+    pid: host
+    network_mode: host
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    env_file: .env
+    depends_on:
+      database:
+        condition: service_healthy
+
+volumes:
+  pgdata:

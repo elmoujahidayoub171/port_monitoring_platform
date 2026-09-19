@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        {% block title %}
+            PortMonitor · Network Port Monitor
+        {% endblock %}
+    </title>
+
+    <!-- Fonts: Plus Jakarta Sans (entire UI) -->
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/main.css') }}"
+    >
+
+    {% block extra_css %}
+    {% endblock %}
+
+</head>
+
+
+<body>
+
+    <!-- =============================================================
+         LOADING SCREEN
+    ============================================================== -->
+
+    <div
+        class="loader"
+        id="loader"
+        role="status"
+        aria-live="polite"
+        aria-label="Loading PortMonitor"
+    >
+
+        <div class="loader-box">
+
+            <h1 class="loader-title">
+                PortMonitor
+            </h1>
+
+
+            <div class="loader-stage">
+
+                <span class="loader-particle"></span>
+                <span class="loader-particle"></span>
+                <span class="loader-particle"></span>
+                <span class="loader-particle"></span>
+                <span class="loader-particle"></span>
+                <span class="loader-particle"></span>
+
+                <svg
+                    class="loader-svg"
+                    viewBox="0 0 120 120"
+                    aria-hidden="true"
+                >
+
+                    <defs>
+
+                        <linearGradient
+                            id="loaderGrad"
+                            x1="0%"
+                            y1="0%"
+                            x2="100%"
+                            y2="100%"
+                        >
+                            <stop
+                                offset="0%"
+                                stop-color="#2f54ff"
+                            />
+                            <stop
+                                offset="100%"
+                                stop-color="#846fff"
+                            />
+                        </linearGradient>
+
+                    </defs>
+
+                    <circle
+                        class="loader-track"
+                        cx="60"
+                        cy="60"
+                        r="54"
+                    >
+                    </circle>
+
+                    <circle
+                        class="loader-arc"
+                        cx="60"
+                        cy="60"
+                        r="54"
+                        pathLength="100"
+                        stroke-dasharray="58 100"
+                    >
+                    </circle>
+
+                </svg>
+
+                <span class="loader-orb"></span>
+
+                <span class="loader-ripple"></span>
+                <span class="loader-ripple"></span>
+                <span class="loader-ripple"></span>
+
+            </div>
+
+
+            <p class="loader-text">
+                Loading...
+            </p>
+
+        </div>
+
+    </div>
+
+    <!-- =============================================================
+         APP  — sidebar + topbar + content grouped in one panel
+    ============================================================== -->
+
+    <div
+        class="app"
+        id="app" style="background-image : url('{{url_for('static' , filename='img/body-background.png')}}');"
+    >
+
+    <!-- =============================================================
+         SIDEBAR
+    ============================================================== -->
+
+    <aside
+        class="sidebar"
+        id="sidebar"
+    >
+
+        <nav class="sidebar-nav">
+
+            <div class="nav-section">
+                CONSOLE
+            </div>
+
+            <a href="#overview" class="nav-item active">
+                <span class="nav-index">01</span>
+                <span class="nav-label">Overview</span>
+            </a>
+
+            <a href="#ports" class="nav-item">
+                <span class="nav-index">02</span>
+                <span class="nav-label">Ports</span>
+            </a>
+
+            <a href="#processes" class="nav-item">
+                <span class="nav-index">03</span>
+                <span class="nav-label">Processes</span>
+            </a>
+
+            <a href="#connections" class="nav-item">
+                <span class="nav-index">04</span>
+                <span class="nav-label">Connections</span>
+            </a>
+
+            <a href="#alerts" class="nav-item">
+                <span class="nav-index">05</span>
+                <span class="nav-label">Alerts</span>
+            </a>
+
+        </nav>
+
+    </aside>
+
+
+    <!-- =============================================================
+         MOBILE OVERLAY
+    ============================================================== -->
+
+    <div
+        class="sidebar-overlay"
+        id="sidebarOverlay"
+    ></div>
+
+
+    <!-- =============================================================
+         MAIN COLUMN
+    ============================================================== -->
+
+    <div class="main-column">
+
+        <!-- Topbar -->
+
+        <header class="topbar">
+
+            <div class="topbar-left">
+
+                <button
+                    type="button"
+                    class="mobile-menu-button"
+                    id="menuToggle"
+                >
+                    ☰
+                </button>
+
+            </div>
+
+
+            <div class="topbar-brand">
+
+                <div class="topbar-brand-copy">
+
+                    <div class="brand-name">
+                        PortMonitor
+                    </div>
+
+                    <div class="brand-sub">
+                        live network posture
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="topbar-right">
+
+                <div class="live-badge">
+                    <span class="live-dot"></span>
+                    LIVE
+                </div>
+
+                <span class="clock" id="clock">
+                    --:--:--
+                </span>
+
+            </div>
+
+        </header>
+
+
+        <!-- Flash messages -->
+
+        <div class="flash-container">
+
+            {% with messages = get_flashed_messages(
+                with_categories=true
+            ) %}
+
+                {% if messages %}
+
+                    {% for category, message in messages %}
+
+                        <div
+                            class="flash-message flash-{{ category }}"
+                        >
+
+                            <span>
+                                {{ message }}
+                            </span>
+
+                            <button
+                                type="button"
+                                class="flash-close"
+                            >
+                                ×
+                            </button>
+
+                        </div>
+
+                    {% endfor %}
+
+                {% endif %}
+
+            {% endwith %}
+
+        </div>
+
+
+        <!-- Page content -->
+
+        <main class="page">
+            {% block content %}
+            {% endblock %}
+        </main>
+
+    </div>
+
+    </div>
+
+
+    <script
+        src="{{ url_for('static', filename='js/main.js') }}"
+    ></script>
+
+
+    {% block extra_js %}
+    {% endblock %}
+
+</body>
+
+</html>

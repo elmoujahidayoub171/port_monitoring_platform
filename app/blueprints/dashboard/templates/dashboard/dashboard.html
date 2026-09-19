@@ -1,0 +1,542 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Overview | PortMonitor
+{% endblock %}
+
+
+{% block content %}
+
+<!-- =============================================================
+     KPI RAIL  — values + sparkline slots
+============================================================== -->
+
+<section class="kpi-rail" id="overview">
+
+    <article class="kpi" data-tone="signal">
+
+        <div class="kpi-head">
+            <div class="kpi-title">
+                <span class="kpi-icon">◫</span>
+                <span class="kpi-label">Listening ports</span>
+            </div>
+            <span class="kpi-sig"></span>
+        </div>
+
+        <div class="kpi-value">
+            <span class="ph-dash">{{ listening_ports }}</span>
+        </div>
+
+        <div class="kpi-spark {{ 'ph-empty-spark' if not ports_spark }}">
+            {% if ports_spark %}
+                <svg class="spark" viewBox="0 0 120 32" preserveAspectRatio="none" aria-hidden="true">
+                    <polyline points="{{ ports_spark }}"></polyline>
+                </svg>
+            {% endif %}
+        </div>
+
+        <div class="kpi-meta">
+            <span class="delta flat"><span class="ph-dash">·</span></span>
+            <span class="kpi-sub">tcp + udp</span>
+        </div>
+
+    </article>
+
+
+    <article class="kpi" data-tone="cyan">
+
+        <div class="kpi-head">
+            <div class="kpi-title">
+                <span class="kpi-icon">⌗</span>
+                <span class="kpi-label">Active processes</span>
+            </div>
+            <span class="kpi-sig"></span>
+        </div>
+
+        <div class="kpi-value">
+            <span class="ph-dash">{{ active_processes }}</span>
+        </div>
+
+        <div class="kpi-spark {{ 'ph-empty-spark' if not processes_spark }}">
+            {% if processes_spark %}
+                <svg class="spark" viewBox="0 0 120 32" preserveAspectRatio="none" aria-hidden="true">
+                    <polyline points="{{ processes_spark }}"></polyline>
+                </svg>
+            {% endif %}
+        </div>
+
+        <div class="kpi-meta">
+            <span class="delta flat"><span class="ph-dash">·</span></span>
+            <span class="kpi-sub">with net activity</span>
+        </div>
+
+    </article>
+
+
+    <article class="kpi" data-tone="signal">
+
+        <div class="kpi-head">
+            <div class="kpi-title">
+                <span class="kpi-icon">⇄</span>
+                <span class="kpi-label">Active connections</span>
+            </div>
+            <span class="kpi-sig"></span>
+        </div>
+
+        <div class="kpi-value">
+            <span class="ph-dash">{{ active_connections }}</span>
+        </div>
+
+        <div class="kpi-spark {{ 'ph-empty-spark' if not connections_spark }}">
+            {% if connections_spark %}
+                <svg class="spark" viewBox="0 0 120 32" preserveAspectRatio="none" aria-hidden="true">
+                    <polyline points="{{ connections_spark }}"></polyline>
+                </svg>
+            {% endif %}
+        </div>
+
+        <div class="kpi-meta">
+            <span class="delta flat"><span class="ph-dash">·</span></span>
+            <span class="kpi-sub">estab + listen</span>
+        </div>
+
+    </article>
+
+
+    <a href="#alerts" class="kpi" data-tone="danger" title="Scroll to alerts section">
+
+        <div class="kpi-head">
+            <div class="kpi-title">
+                <span class="kpi-icon">⚠</span>
+                <span class="kpi-label">Open alerts</span>
+            </div>
+            <span class="kpi-sig"></span>
+        </div>
+
+        <div class="kpi-value">
+            <span class="ph-dash">{{ open_alertes }}</span>
+        </div>
+
+        <div class="kpi-spark {{ 'ph-empty-spark' if not alerts_spark }}">
+            {% if alerts_spark %}
+                <svg class="spark" viewBox="0 0 120 32" preserveAspectRatio="none" aria-hidden="true">
+                    <polyline points="{{ alerts_spark }}"></polyline>
+                </svg>
+            {% endif %}
+        </div>
+
+        <div class="kpi-meta">
+            <span class="delta flat"><span class="ph-dash">·</span></span>
+            <span class="kpi-sub">needs attention</span>
+        </div>
+
+    </a>
+
+</section>
+
+
+<!-- =============================================================
+     MAIN GRID · ACTIVITY + PROTOCOLS
+============================================================== -->
+
+<section class="grid-main">
+
+    <!-- Protocol split -->
+
+    <article class="card">
+
+        <header class="card-head">
+
+            <div class="card-title">
+
+                <span class="card-mark">◔</span>
+
+                <div>
+
+                    <div class="card-name">
+                        Protocol split
+                    </div>
+
+                    <div class="card-sub">
+                        sockets by transport
+                    </div>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <div class="card-body donut-body">
+
+            <div class="donut-wrap">
+
+                <svg class="donut" viewBox="0 0 120 120" role="img" aria-label="TCP to UDP socket split">
+
+                    <circle class="donut-track" cx="60" cy="60" r="46">
+                    </circle>
+
+                    <circle
+                        class="donut-seg donut-tcp"
+                        cx="60" cy="60"
+                        r="46"
+                        pathLength="100"
+                        stroke-dasharray="{{ tcp_pct }} 100"
+                        transform="rotate(-90 60 60)"
+                    >
+                    </circle>
+
+                    <circle
+                        class="donut-seg donut-udp"
+                        cx="60" cy="60"
+                        r="46"
+                        pathLength="100"
+                        stroke-dasharray="{{ udp_pct }} 100"
+                        transform="rotate({{ (-90 + tcp_pct * 3.6)|round(1) }} 60 60)"
+                    >
+                    </circle>
+
+                </svg>
+
+                <div class="donut-center">
+                    <div class="donut-total {{ 'ph-dash' if not total }}">{{ total if total != 0 else '—' }}</div>
+                    <div class="donut-unit">sockets</div>
+                </div>
+
+            </div>
+
+
+            <ul class="donut-legend">
+
+                <li class="legend-row">
+                    <span class="legend-dot tcp"></span>
+                    <span class="legend-name">tcp</span>
+                    <span class="legend-count">{{ tcp_n }}</span>
+                    <span class="legend-pct">{{ tcp_pct }}%</span>
+                </li>
+
+                <li class="legend-row">
+                    <span class="legend-dot udp"></span>
+                    <span class="legend-name">udp</span>
+                    <span class="legend-count">{{ udp_n }}</span>
+                    <span class="legend-pct">{{ udp_pct }}%</span>
+                </li>
+
+            </ul>
+
+        </div>
+
+    </article>
+
+</section>
+
+
+<!-- =============================================================
+     MID GRID · LISTENING PORTS + PROCESSES
+============================================================== -->
+
+<section class="grid-main">
+
+    <!-- Listening ports -->
+
+    <article class="card span-2" id="ports">
+
+        <header class="card-head">
+
+            <div class="card-title">
+
+                <span class="card-mark">◉</span>
+
+                <div>
+
+                    <div class="card-name">
+                        Listening ports
+                    </div>
+
+                    <div class="card-sub">
+                        services currently advertised
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <a href="#" class="card-link">VIEW ALL →</a>
+
+        </header>
+
+
+        <div class="table-wrap">
+
+            <table class="data-table">
+
+                <thead>
+
+                    <tr>
+                        <th>Port</th>
+                        <th>Proto</th>
+                        <th>Process</th>
+                        <th>PID</th>
+                        <th>State</th>
+                        <th class="align-right">Since</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+                    {% if listening_ports_description %}
+                        {% for item in listening_ports_description[:10] %}
+
+<tr>
+                                <td>{{ item[0] }}</td>
+                                <td>{{ item[1] }}</td>
+                                <td>{{ item[2] }}</td>
+                                <td>{{ item[3] }}</td>
+                                <td>{{ item[4] }}</td>
+                                <td class="align-right">{{ item[5].strftime('%H:%M') }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                            <tr>
+                                <td class="ph-td" colspan="6">
+                                    <div class="empty">
+                                        <span class="empty-mark">◉</span>
+                                        <span class="empty-title">No listening ports</span>
+                                        <span class="empty-sub">detected services appear here</span>
+                                    </div>
+                                </td>
+                            </tr>
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </article>
+
+
+    <!-- Top processes -->
+
+    <article class="card" id="processes">
+
+        <header class="card-head">
+
+            <div class="card-title">
+
+                <span class="card-mark">▣</span>
+
+                <div>
+
+                    <div class="card-name">
+                        Top processes
+                    </div>
+
+                    <div class="card-sub">
+                        by cpu / memory
+                    </div>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <div class="table-wrap">
+
+            <table class="data-table table-procs">
+
+                <thead>
+
+                    <tr>
+                        <th>PID</th>
+                        <th>Name</th>
+                        <th>CPU%</th>
+                        <th>MEM%</th>
+                        <th class="align-right">Conns</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+                    {% if top_processes %}
+                        {% for p in top_processes[:10] %}
+
+                            <tr>
+                                <td>{{ p.pid }}</td>
+                                <td>{{ p.name }}</td>
+                                <td>{{ '%.1f'|format(p.cpu_usage) }}%</td>
+                                <td>{{ '%.1f'|format(p.memory_usage) }}%</td>
+                                <td class="align-right">{{ pr_by_conn_count.get(p.pid) }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+
+                        <tr>
+                            <td class="ph-td" colspan="5">
+                                <div class="empty">
+                                    <span class="empty-mark">▣</span>
+                                    <span class="empty-title">No process data</span>
+                                    <span class="empty-sub">tracked processes appear here</span>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </article>
+
+</section>
+
+
+<!-- =============================================================
+     BOTTOM GRID · PEERS + ALERTS
+============================================================== -->
+
+<section class="grid-main">
+
+    <!-- Remote peers -->
+
+    <article class="card" id="connections">
+
+        <header class="card-head">
+
+            <div class="card-title">
+
+                <span class="card-mark">⇄</span>
+
+                <div>
+
+                    <div class="card-name">
+                        Remote peers
+                    </div>
+
+                    <div class="card-sub">
+                        external endpoints by connection count
+                    </div>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <div class="table-wrap">
+
+            <table class="data-table table-peers">
+
+                <thead>
+
+                    <tr>
+                        <th>Address</th>
+                        <th>Port</th>
+                        <th>Process</th>
+                        <th class="align-right">Conns</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+                    {% if top_remote_ips %}
+                        {% for ip , count in top_remote_ips[:10] %}
+
+                            <tr>
+                                <td>{{ ip}}</td>
+                                <td>{{ remote_ips_infos.get(ip)[1] }}</td>
+                                <td>{{ remote_ips_infos.get(ip)[2] }}</td>
+                                <td>{{ remote_ips_infos.get(ip)[3] }}</td>                                                    
+                            </tr>
+                            {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td class="ph-td" colspan="4">
+                                <div class="empty">
+                                    <span class="empty-mark">⇄</span>
+                                    <span class="empty-title">No peers</span>
+                                    <span class="empty-sub">remote endpoints appear here</span>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </article>
+
+
+    <!-- Alerts -->
+
+    <article class="card span-2" id="alerts">
+
+        <header class="card-head">
+
+            <div class="card-title">
+
+                <span class="card-mark">⚠</span>
+
+                <div>
+
+                    <div class="card-name">
+                        Recent alerts
+                    </div>
+
+                    <div class="card-sub">
+                        generated by detection rules
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <a href="#" class="card-link">VIEW ALL →</a>
+
+        </header>
+
+
+        <div class="alert-list">
+
+            {% if alertes %}
+                {% for a in alertes[:10] %}
+
+                    <div class="alert-item alert-{{ a.severity }}">
+                        <span class="alert-mark"></span>
+                        <div class="alert-body">
+                            <div class="alert-top">
+                                <span class="alert-sev">{{ a.severity | upper }}</span>
+                                <span class="alert-title">{{ a.title }}</span>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+
+                <div class="empty">
+                    <span class="empty-mark">✓</span>
+                    <span class="empty-title">No recent alerts</span>
+                    <span class="empty-sub">detection events appear here</span>
+                </div>
+            {% endif %}
+
+        </div>
+
+    </article>
+
+</section>
+
+
+{% endblock %}
